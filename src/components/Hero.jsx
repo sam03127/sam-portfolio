@@ -1,10 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { gsap } from 'gsap';
 import pictureImg from '../assets/Portfolio/picture.jpg';
+import projectVideo from '../assets/Portfolio/project-video.mp4';
 
 const Hero = () => {
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [playbackError, setPlaybackError] = useState(false);
   const sectionRef = useRef(null);
   const cardRef = useRef(null);
+  const videoRef = useRef(null);
   const glareRef = useRef(null);
   const spotlightRef = useRef(null);
   const cursorDotRef = useRef(null);
@@ -131,7 +137,19 @@ const Hero = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isVideoOpen) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsVideoOpen(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isVideoOpen]);
+
   return (
+    <>
     <section
       ref={sectionRef}
       className="relative w-full h-screen bg-[#050505] overflow-hidden flex flex-col justify-between select-none cursor-none"
@@ -217,15 +235,20 @@ const Hero = () => {
 
             {/* Action Button Set */}
             <div className="hero-anim-item flex items-center gap-4 pt-2">
-              <a
-                href="#projects"
+              <button
+                type="button"
+                onClick={() => {
+                  setVideoError(false);
+                  setPlaybackError(false);
+                  setIsVideoOpen(true);
+                }}
                 className="px-8 py-3.5 bg-white text-black font-bold text-xs uppercase tracking-widest rounded hover:bg-red-600 hover:text-white transition-all duration-300 shadow-[0_10px_35px_rgba(255,255,255,0.3)] flex items-center gap-2 hover:scale-105 active:scale-95"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
                 View Projects
-              </a>
+              </button>
               <a
                 href="#contact"
                 className="px-8 py-3.5 bg-neutral-900/80 text-white border border-white/20 font-bold text-xs uppercase tracking-widest rounded hover:bg-neutral-800 transition-all duration-300 shadow-xl backdrop-blur-md flex items-center gap-2 hover:scale-105 active:scale-95"
@@ -323,6 +346,75 @@ const Hero = () => {
         </a>
       </header>
     </section>
+    {isVideoOpen && createPortal(
+      <div
+        className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="project-video-title"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setIsVideoOpen(false);
+        }}
+      >
+        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-red-600/40 bg-[#111] shadow-[0_0_80px_rgba(229,9,20,0.2)]">
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <h2 id="project-video-title" className="font-mono text-sm font-bold uppercase tracking-widest text-white">
+              Project Video
+            </h2>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const video = videoRef.current;
+                  if (!video) return;
+                  video.muted = false;
+                  video.volume = 1;
+                  video.play().catch(() => {
+                    setPlaybackError(true);
+                  });
+                }}
+                className="rounded px-3 py-1 text-sm text-red-400 transition hover:bg-white/10 hover:text-red-300"
+              >
+                Sound On
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsVideoOpen(false)}
+                className="rounded px-3 py-1 text-sm text-white/70 transition hover:bg-white/10 hover:text-white"
+                aria-label="Close project video"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+          {videoError ? (
+            <p className="p-8 text-center text-sm text-white/80">
+              This video could not be played in your browser. Try converting it to MP4 (H.264).
+            </p>
+          ) : (
+            <video
+              ref={videoRef}
+              src={projectVideo}
+              controls
+              autoPlay
+              muted={false}
+              playsInline
+              onError={() => setVideoError(true)}
+              className="block max-h-[80vh] w-full bg-black"
+            >
+              Your browser does not support video playback.
+            </video>
+          )}
+          {playbackError && (
+            <p role="status" className="px-5 py-3 text-center text-sm text-white/80">
+              Playback was blocked. Use the video controls and check your browser or device sound settings.
+            </p>
+          )}
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 };
 
